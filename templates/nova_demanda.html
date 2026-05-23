@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if demanda else 'Nova' }} Demanda — Voar{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;margin:0 auto">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+    <a href="/" class="btn btn-secondary btn-sm">← Voltar</a>
+    <h1 style="font-size:22px;color:#1a73e8">
+      {{ '✏️ Editar Demanda' if demanda else '✈️ Nova Demanda de Passagem' }}
+    </h1>
+  </div>
+
+  <div class="card">
+    <form method="post">
+
+      <h3 style="margin-bottom:16px;color:#555;font-size:15px;border-bottom:1px solid #eee;padding-bottom:10px">
+        👤 Dados do Cliente
+      </h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nome do Cliente *</label>
+          <input type="text" name="cliente_nome" required placeholder="Ex: João Silva"
+                 value="{{ demanda.cliente_nome if demanda else '' }}">
+        </div>
+        <div class="form-group">
+          <label>Email do Cliente *</label>
+          <input type="email" name="cliente_email" required placeholder="cliente@email.com"
+                 value="{{ demanda.cliente_email if demanda else '' }}">
+          <div class="form-hint">O alerta será enviado para este email</div>
+        </div>
+      </div>
+
+      <h3 style="margin:20px 0 16px;color:#555;font-size:15px;border-bottom:1px solid #eee;padding-bottom:10px">
+        ✈️ Detalhes do Voo
+      </h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Aeroporto de Origem * <span style="font-size:11px;color:#888">(código IATA)</span></label>
+          <input type="text" name="origem" required placeholder="Ex: GRU, BSB, SDU"
+                 maxlength="3" style="text-transform:uppercase"
+                 value="{{ demanda.origem if demanda else '' }}">
+          <div class="form-hint">GRU = Guarulhos · SDU = Santos Dumont · BSB = Brasília · SSA = Salvador · REC = Recife · FOR = Fortaleza · MIA = Miami · LIS = Lisboa</div>
+        </div>
+        <div class="form-group">
+          <label>Aeroporto de Destino * <span style="font-size:11px;color:#888">(código IATA)</span></label>
+          <input type="text" name="destino" required placeholder="Ex: MIA, LIS, GIG"
+                 maxlength="3" style="text-transform:uppercase"
+                 value="{{ demanda.destino if demanda else '' }}">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Data de Ida *</label>
+          <input type="date" name="data_ida" required
+                 value="{{ demanda.data_ida if demanda else '' }}"
+                 min="{{ '' }}">
+        </div>
+        <div class="form-group">
+          <label>Data de Volta <span style="font-size:11px;color:#888">(deixe em branco para só ida)</span></label>
+          <input type="date" name="data_volta"
+                 value="{{ demanda.data_volta if demanda and demanda.data_volta else '' }}">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Número de Adultos</label>
+          <select name="adultos">
+            {% for i in range(1, 7) %}
+              <option value="{{ i }}" {{ 'selected' if demanda and demanda.adultos == i else '' }}>{{ i }} adulto{{ 's' if i > 1 else '' }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Moeda</label>
+          <select name="moeda">
+            <option value="BRL" {{ 'selected' if not demanda or demanda.moeda == 'BRL' }}>BRL — Real Brasileiro</option>
+            <option value="USD" {{ 'selected' if demanda and demanda.moeda == 'USD' }}>USD — Dólar Americano</option>
+            <option value="EUR" {{ 'selected' if demanda and demanda.moeda == 'EUR' }}>EUR — Euro</option>
+          </select>
+        </div>
+      </div>
+
+      <h3 style="margin:20px 0 16px;color:#555;font-size:15px;border-bottom:1px solid #eee;padding-bottom:10px">
+        💰 Orçamento e Preferências
+      </h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Preço-Alvo Máximo (por pessoa) *</label>
+          <input type="text" name="preco_alvo" required placeholder="Ex: 1500,00"
+                 value="{{ demanda.preco_alvo if demanda else '' }}">
+          <div class="form-hint">Você será avisado quando o preço ficar igual ou abaixo deste valor</div>
+        </div>
+        <div class="form-group">
+          <label>Flexibilidade / Observações</label>
+          <input type="text" name="flexibilidade" placeholder="Ex: ±3 dias, qualquer cia, direto"
+                 value="{{ demanda.flexibilidade if demanda and demanda.flexibilidade else '' }}">
+          <div class="form-hint">Informações adicionais sobre as preferências do cliente</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:24px">
+        <button type="submit" class="btn btn-success">
+          {{ '💾 Salvar Alterações' if demanda else '✅ Cadastrar e Começar a Monitorar' }}
+        </button>
+        <a href="/" class="btn btn-secondary">Cancelar</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

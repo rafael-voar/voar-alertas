@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Voar Alertas{% endblock %}
+
+{% block content %}
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="num">{{ demandas_ativas }}</div>
+    <div class="lbl">✈️ Demandas Ativas</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">{{ demandas|length }}</div>
+    <div class="lbl">📋 Total de Demandas</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">{{ total_alertas }}</div>
+    <div class="lbl">📬 Alertas Enviados</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📋 Demandas de Passagens</h2>
+
+  {% if demandas %}
+  <table>
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Rota</th>
+        <th>Data Ida</th>
+        <th>Volta</th>
+        <th>Orçamento</th>
+        <th>Preço Atual</th>
+        <th>Última Verificação</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in demandas %}
+      <tr>
+        <td>
+          <strong>{{ d.cliente_nome }}</strong><br>
+          <span style="font-size:12px;color:#888">{{ d.cliente_email }}</span>
+        </td>
+        <td>
+          <div class="rota">
+            <span>{{ d.origem }}</span>
+            <span class="arrow">→</span>
+            <span>{{ d.destino }}</span>
+          </div>
+          {% if d.flexibilidade %}
+            <div style="font-size:11px;color:#888;margin-top:3px">{{ d.flexibilidade }}</div>
+          {% endif %}
+        </td>
+        <td>{{ d.data_ida }}</td>
+        <td>{{ d.data_volta or '—' }}</td>
+        <td><strong style="color:#1a73e8">R$ {{ "%.2f"|format(d.preco_alvo)|replace(".", ",") }}</strong></td>
+        <td>
+          {% if d.preco_atual %}
+            {% if d.preco_atual <= d.preco_alvo %}
+              <span style="color:#2e7d32;font-weight:bold">R$ {{ "%.2f"|format(d.preco_atual)|replace(".", ",") }}</span>
+              <span class="badge badge-green">✓ Dentro</span>
+            {% else %}
+              <span style="color:#b71c1c">R$ {{ "%.2f"|format(d.preco_atual)|replace(".", ",") }}</span>
+            {% endif %}
+          {% else %}
+            <span style="color:#aaa">Ainda não verificado</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px;color:#888">
+          {% if d.ultima_verificacao %}
+            {{ d.ultima_verificacao.strftime('%d/%m %H:%M') }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td>
+          {% if d.ativo %}
+            <span class="badge badge-green">● Ativo</span>
+          {% else %}
+            <span class="badge badge-gray">● Pausado</span>
+          {% endif %}
+        </td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <a href="/demanda/{{ d.id }}" class="btn btn-secondary btn-sm">Ver</a>
+            <form method="post" action="/verificar/{{ d.id }}" style="display:inline">
+              <button type="submit" class="btn btn-primary btn-sm">🔍</button>
+            </form>
+            <form method="post" action="/demanda/{{ d.id }}/toggle" style="display:inline">
+              <button type="submit" class="btn btn-sm {{ 'btn-warning' if d.ativo else 'btn-success' }}">
+                {{ '⏸' if d.ativo else '▶' }}
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">✈️</div>
+    <h3>Nenhuma demanda cadastrada ainda</h3>
+    <p>Clique em <strong>+ Nova Demanda</strong> para começar a monitorar passagens.</p>
+    <br>
+    <a href="/nova" class="btn btn-primary">+ Cadastrar primeira demanda</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
