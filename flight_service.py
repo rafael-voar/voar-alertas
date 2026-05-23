@@ -77,7 +77,7 @@ def buscar_voos_skyscanner(demanda):
         print(f'[Skyscanner] skyId ou entityId inválido para destino: {destino}')
         return []
 
-    url = 'https://sky-scrapper.p.rapidapi.com/api/v2/flights/searchFlightsComplete'
+    url = 'https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchFlights'
     params = {
         'originSkyId': origem['skyId'],
         'destinationSkyId': destino['skyId'],
