@@ -34,9 +34,11 @@ def buscar_aeroporto(codigo_iata):
             return None
 
         item = data['data'][0]
+        nav = item.get('navigation', {})
+        flight_params = nav.get('relevantFlightParams', {})
         resultado = {
-            'skyId': item.get('skyId', ''),
-            'entityId': item.get('entityId', ''),
+            'skyId': flight_params.get('skyId', '') or nav.get('entityId', ''),
+            'entityId': nav.get('entityId', ''),
             'nome': item.get('presentation', {}).get('title', '')
         }
         print(f'[API] Aeroporto encontrado: {resultado}')
