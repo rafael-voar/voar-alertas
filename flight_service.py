@@ -86,7 +86,7 @@ def buscar_voos_skyscanner(demanda):
         'date': demanda.data_ida,
         'cabinClass': 'economy',
         'adults': str(demanda.adultos),
-        'sortBy': 'cheapest',
+        'sortBy': 'price_low',
         'currency': demanda.moeda,
         'market': 'BR',
         'countryCode': 'BR',
