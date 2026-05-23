@@ -90,11 +90,20 @@
 
       <div class="form-grid">
         <div class="form-group">
-          <label>Preço-Alvo Máximo (por pessoa) *</label>
+          <label>Orçamento Máximo do Cliente (por pessoa) *</label>
           <input type="text" name="preco_alvo" required placeholder="Ex: 1500,00"
                  value="{{ demanda.preco_alvo if demanda else '' }}">
-          <div class="form-hint">Você será avisado quando o preço ficar igual ou abaixo deste valor</div>
+          <div class="form-hint">Preço máximo que o cliente aceita pagar</div>
         </div>
+        <div class="form-group">
+          <label>Último Preço Cotado pela Voar</label>
+          <input type="text" name="preco_cotado" placeholder="Ex: 1200,00"
+                 value="{{ demanda.preco_cotado if demanda and demanda.preco_cotado else '' }}">
+          <div class="form-hint">Se o preço cair abaixo deste valor, você será avisado para oferecer ao cliente</div>
+        </div>
+      </div>
+
+      <div class="form-grid">
         <div class="form-group">
           <label>Flexibilidade / Observações</label>
           <input type="text" name="flexibilidade" placeholder="Ex: ±3 dias, qualquer cia, direto"

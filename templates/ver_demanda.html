@@ -25,7 +25,10 @@
       <tr><td style="color:#888;padding:8px 0">Ida</td><td>{{ demanda.data_ida }}</td></tr>
       <tr><td style="color:#888;padding:8px 0">Volta</td><td>{{ demanda.data_volta or 'Somente ida' }}</td></tr>
       <tr><td style="color:#888;padding:8px 0">Adultos</td><td>{{ demanda.adultos }}</td></tr>
-      <tr><td style="color:#888;padding:8px 0">Orçamento</td><td><strong style="color:#1a73e8">R$ {{ "%.2f"|format(demanda.preco_alvo)|replace(".", ",") }}</strong></td></tr>
+      <tr><td style="color:#888;padding:8px 0">Orçamento Máximo</td><td><strong style="color:#1a73e8">R$ {{ "%.2f"|format(demanda.preco_alvo)|replace(".", ",") }}</strong></td></tr>
+      {% if demanda.preco_cotado %}
+      <tr><td style="color:#888;padding:8px 0">Último Preço Cotado</td><td><strong style="color:#e65100">R$ {{ "%.2f"|format(demanda.preco_cotado)|replace(".", ",") }}</strong></td></tr>
+      {% endif %}
       <tr><td style="color:#888;padding:8px 0">Moeda</td><td>{{ demanda.moeda }}</td></tr>
       {% if demanda.flexibilidade %}
       <tr><td style="color:#888;padding:8px 0">Flexibilidade</td><td>{{ demanda.flexibilidade }}</td></tr>

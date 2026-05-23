@@ -20,7 +20,8 @@ class Demanda(db.Model):
     adultos = db.Column(db.Integer, default=1)
 
     # Preferências
-    preco_alvo = db.Column(db.Float, nullable=False)        # Preço máximo desejado
+    preco_alvo = db.Column(db.Float, nullable=False)        # Preço máximo desejado pelo cliente
+    preco_cotado = db.Column(db.Float, nullable=True)       # Último preço cotado pela Voar ao cliente
     flexibilidade = db.Column(db.String(200), nullable=True) # Ex: "±3 dias", "qualquer cia"
     moeda = db.Column(db.String(5), default='BRL')
 

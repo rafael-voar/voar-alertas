@@ -40,6 +40,7 @@ def index():
 def nova_demanda():
     if request.method == 'POST':
         try:
+            preco_cotado_raw = request.form.get('preco_cotado', '').replace(',', '.').strip()
             demanda = Demanda(
                 cliente_nome=request.form['cliente_nome'].strip(),
                 cliente_email=request.form['cliente_email'].strip().lower(),
@@ -49,6 +50,7 @@ def nova_demanda():
                 data_volta=request.form.get('data_volta') or None,
                 adultos=int(request.form.get('adultos', 1)),
                 preco_alvo=float(request.form['preco_alvo'].replace(',', '.')),
+                preco_cotado=float(preco_cotado_raw) if preco_cotado_raw else None,
                 flexibilidade=request.form.get('flexibilidade', '').strip() or None,
                 moeda=request.form.get('moeda', 'BRL')
             )
@@ -85,6 +87,8 @@ def editar_demanda(id):
         demanda.data_volta = request.form.get('data_volta') or None
         demanda.adultos = int(request.form.get('adultos', 1))
         demanda.preco_alvo = float(request.form['preco_alvo'].replace(',', '.'))
+        preco_cotado_raw = request.form.get('preco_cotado', '').replace(',', '.').strip()
+        demanda.preco_cotado = float(preco_cotado_raw) if preco_cotado_raw else None
         demanda.flexibilidade = request.form.get('flexibilidade', '').strip() or None
         db.session.commit()
         flash('✅ Demanda atualizada!', 'success')
@@ -129,7 +133,10 @@ def verificar_agora(id):
         demanda.preco_atual = oferta['preco']
         demanda.ultima_verificacao = datetime.utcnow()
 
-        if oferta['preco'] <= demanda.preco_alvo:
+        dentro_orcamento = oferta['preco'] <= demanda.preco_alvo
+        abaixo_cotado = demanda.preco_cotado and oferta['preco'] < demanda.preco_cotado
+
+        if dentro_orcamento or abaixo_cotado:
             alerta = Alerta(
                 demanda_id=demanda.id,
                 preco_encontrado=oferta['preco'],
@@ -140,9 +147,15 @@ def verificar_agora(id):
             enviado = enviar_alerta(demanda, oferta)
             alerta.email_enviado = enviado
             db.session.add(alerta)
-            flash(f'🎉 Preço atingido! R${oferta["preco"]:.2f} — Email {"enviado" if enviado else "com erro"}.', 'success')
+            if dentro_orcamento:
+                flash(f'🎉 Preço dentro do orçamento! R${oferta["preco"]:.2f} — Email {"enviado" if enviado else "com erro"}.', 'success')
+            else:
+                flash(f'📉 Preço caiu abaixo do valor cotado! R${oferta["preco"]:.2f} (cotado: R${demanda.preco_cotado:.2f}) — Email {"enviado" if enviado else "com erro"}.', 'success')
         else:
-            flash(f'Preço atual: R${oferta["preco"]:.2f} — ainda acima do alvo de R${demanda.preco_alvo:.2f}.', 'info')
+            msg = f'Preço atual: R${oferta["preco"]:.2f} — acima do alvo de R${demanda.preco_alvo:.2f}'
+            if demanda.preco_cotado:
+                msg += f' (cotado: R${demanda.preco_cotado:.2f})'
+            flash(msg, 'info')
 
         db.session.commit()
     else:
