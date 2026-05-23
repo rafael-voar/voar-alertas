@@ -3,88 +3,109 @@ import os
 from datetime import datetime
 
 RAPIDAPI_KEY = os.getenv('RAPIDAPI_KEY', '')
-
 SKYSCANNER_HOST = 'sky-scrapper.p.rapidapi.com'
 
-HEADERS_SKYSCANNER = {
+HEADERS = {
     'x-rapidapi-key': RAPIDAPI_KEY,
     'x-rapidapi-host': SKYSCANNER_HOST
 }
 
 
-def buscar_aeroporto(nome_cidade):
-    """Busca o código IATA de um aeroporto pelo nome da cidade."""
+def buscar_aeroporto(codigo_iata):
+    """Busca entityId e skyId pelo código IATA ou nome da cidade."""
+    print(f'[API] Buscando aeroporto: {codigo_iata}')
     url = 'https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchAirport'
-    params = {'query': nome_cidade, 'locale': 'pt-BR'}
     try:
-        resp = requests.get(url, headers=HEADERS_SKYSCANNER, params=params, timeout=10)
+        resp = requests.get(
+            url,
+            headers={
+                'x-rapidapi-key': os.getenv('RAPIDAPI_KEY', ''),
+                'x-rapidapi-host': SKYSCANNER_HOST
+            },
+            params={'query': codigo_iata, 'locale': 'pt-BR'},
+            timeout=15
+        )
+        print(f'[API] Status searchAirport: {resp.status_code}')
         data = resp.json()
-        resultados = []
-        if data.get('status') and data.get('data'):
-            for item in data['data'][:5]:
-                resultados.append({
-                    'skyId': item.get('skyId', ''),
-                    'entityId': item.get('entityId', ''),
-                    'nome': item.get('presentation', {}).get('title', ''),
-                    'subtitulo': item.get('presentation', {}).get('subtitle', '')
-                })
-        return resultados
+        print(f'[API] Resposta searchAirport: {str(data)[:300]}')
+
+        if not data.get('status') or not data.get('data'):
+            print(f'[API] Aeroporto não encontrado para: {codigo_iata}')
+            return None
+
+        item = data['data'][0]
+        resultado = {
+            'skyId': item.get('skyId', ''),
+            'entityId': item.get('entityId', ''),
+            'nome': item.get('presentation', {}).get('title', '')
+        }
+        print(f'[API] Aeroporto encontrado: {resultado}')
+        return resultado
+
     except Exception as e:
-        print(f'[buscar_aeroporto] Erro: {e}')
-        return []
+        print(f'[API] Erro ao buscar aeroporto {codigo_iata}: {e}')
+        return None
 
 
 def buscar_voos_skyscanner(demanda):
-    """
-    Busca voos no Skyscanner via Air Scraper API.
-    Retorna lista de ofertas com preço, cia aérea e link.
-    """
-    resultados = []
+    """Busca voos no Skyscanner e retorna lista de ofertas."""
+    print(f'[Skyscanner] Buscando voos: {demanda.origem} -> {demanda.destino} em {demanda.data_ida}')
+
+    origem = buscar_aeroporto(demanda.origem)
+    destino = buscar_aeroporto(demanda.destino)
+
+    if not origem or not destino:
+        print(f'[Skyscanner] Não foi possível encontrar um dos aeroportos.')
+        return []
+
+    if not origem.get('skyId') or not origem.get('entityId'):
+        print(f'[Skyscanner] skyId ou entityId inválido para origem: {origem}')
+        return []
+
+    if not destino.get('skyId') or not destino.get('entityId'):
+        print(f'[Skyscanner] skyId ou entityId inválido para destino: {destino}')
+        return []
+
+    url = 'https://sky-scrapper.p.rapidapi.com/api/v2/flights/searchFlightsComplete'
+    params = {
+        'originSkyId': origem['skyId'],
+        'destinationSkyId': destino['skyId'],
+        'originEntityId': origem['entityId'],
+        'destinationEntityId': destino['entityId'],
+        'date': demanda.data_ida,
+        'cabinClass': 'economy',
+        'adults': str(demanda.adultos),
+        'sortBy': 'best',
+        'currency': demanda.moeda,
+        'market': 'BR',
+        'countryCode': 'BR',
+        'locale': 'pt-BR'
+    }
+
+    if demanda.data_volta:
+        params['returnDate'] = demanda.data_volta
 
     try:
-        # Passo 1: Buscar entidade de origem
-        origem_data = buscar_aeroporto(demanda.origem)
-        destino_data = buscar_aeroporto(demanda.destino)
-
-        if not origem_data or not destino_data:
-            print(f'[Skyscanner] Aeroporto não encontrado: {demanda.origem} -> {demanda.destino}')
-            return []
-
-        origem = origem_data[0]
-        destino = destino_data[0]
-
-        # Passo 2: Buscar voos
-        url = 'https://sky-scrapper.p.rapidapi.com/api/v2/flights/searchFlightsComplete'
-        params = {
-            'originSkyId': origem['skyId'],
-            'destinationSkyId': destino['skyId'],
-            'originEntityId': origem['entityId'],
-            'destinationEntityId': destino['entityId'],
-            'date': demanda.data_ida,
-            'returnDate': demanda.data_volta or '',
-            'cabinClass': 'economy',
-            'adults': str(demanda.adultos),
-            'sortBy': 'best',
-            'currency': demanda.moeda,
-            'market': 'BR',
-            'countryCode': 'BR',
-            'locale': 'pt-BR'
-        }
-
+        print(f'[Skyscanner] Chamando searchFlightsComplete com params: {params}')
         resp = requests.get(
             url,
-            headers=HEADERS_SKYSCANNER,
-            params={k: v for k, v in params.items() if v},
-            timeout=20
+            headers={
+                'x-rapidapi-key': os.getenv('RAPIDAPI_KEY', ''),
+                'x-rapidapi-host': SKYSCANNER_HOST
+            },
+            params=params,
+            timeout=30
         )
+        print(f'[Skyscanner] Status: {resp.status_code}')
+
         data = resp.json()
+        print(f'[Skyscanner] Resposta (primeiros 500 chars): {str(data)[:500]}')
 
-        itineraries = (
-            data.get('data', {})
-                .get('itineraries', [])
-        )
+        itineraries = data.get('data', {}).get('itineraries', [])
+        print(f'[Skyscanner] Itinerários encontrados: {len(itineraries)}')
 
-        for item in itineraries[:10]:
+        resultados = []
+        for item in itineraries[:5]:
             preco_raw = item.get('price', {}).get('raw', None)
             if preco_raw is None:
                 continue
@@ -93,9 +114,9 @@ def buscar_voos_skyscanner(demanda):
             cias = []
             for leg in legs:
                 for carrier in leg.get('carriers', {}).get('marketing', []):
-                    nome_cia = carrier.get('name', '')
-                    if nome_cia and nome_cia not in cias:
-                        cias.append(nome_cia)
+                    nome = carrier.get('name', '')
+                    if nome and nome not in cias:
+                        cias.append(nome)
 
             resultados.append({
                 'preco': float(preco_raw),
@@ -104,28 +125,25 @@ def buscar_voos_skyscanner(demanda):
                 'fonte': 'skyscanner'
             })
 
-    except Exception as e:
-        print(f'[Skyscanner] Erro na busca: {e}')
+        print(f'[Skyscanner] Ofertas processadas: {len(resultados)}')
+        return resultados
 
-    return resultados
+    except Exception as e:
+        print(f'[Skyscanner] Erro na busca de voos: {e}')
+        return []
 
 
 def verificar_preco_demanda(demanda):
-    """
-    Verifica os preços de uma demanda em todas as fontes.
-    Retorna a melhor oferta encontrada ou None.
-    """
-    todas_ofertas = []
+    """Verifica preços e retorna a melhor oferta ou None."""
+    print(f'[Verificar] Iniciando verificação para demanda {demanda.id}: {demanda.origem}->{demanda.destino}')
 
-    # Busca no Skyscanner
-    ofertas_sky = buscar_voos_skyscanner(demanda)
-    todas_ofertas.extend(ofertas_sky)
+    ofertas = buscar_voos_skyscanner(demanda)
 
-    if not todas_ofertas:
+    if not ofertas:
+        print(f'[Verificar] Nenhuma oferta encontrada.')
         return None
 
-    # Ordena pelo menor preço
-    todas_ofertas.sort(key=lambda x: x['preco'])
-    melhor = todas_ofertas[0]
-
+    ofertas.sort(key=lambda x: x['preco'])
+    melhor = ofertas[0]
+    print(f'[Verificar] Melhor oferta: R${melhor["preco"]} via {melhor["companhia"]}')
     return melhor
