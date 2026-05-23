@@ -23,7 +23,7 @@ def buscar_aeroporto(codigo_iata):
                 'x-rapidapi-host': SKYSCANNER_HOST
             },
             params={'query': codigo_iata, 'locale': 'pt-BR'},
-            timeout=15
+            timeout=30
         )
         print(f'[API] Status searchAirport: {resp.status_code}')
         data = resp.json()
