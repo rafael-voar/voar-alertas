@@ -33,7 +33,16 @@ def buscar_aeroporto(codigo_iata):
             print(f'[API] Aeroporto não encontrado para: {codigo_iata}')
             return None
 
-        item = data['data'][0]
+        items = data['data']
+        # Prioriza resultado do tipo AIRPORT, evita CITY
+        item = None
+        for i in items:
+            if i.get('navigation', {}).get('entityType') == 'AIRPORT':
+                item = i
+                break
+        if not item:
+            item = items[0]
+
         nav = item.get('navigation', {})
         flight_params = nav.get('relevantFlightParams', {})
         resultado = {
