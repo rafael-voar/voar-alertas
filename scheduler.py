@@ -73,11 +73,11 @@ def iniciar_scheduler(app):
             ).count()
             enviar_resumo_diario(demandas_ativas, alertas_hoje)
 
-    # Verificar preços a cada hora
+    # Verificar preços a cada 6 horas
     scheduler.add_job(
         verificar_todos_os_precos,
         'interval',
-        hours=1,
+        hours=6,
         id='verificar_precos',
         name='Verificação de Preços de Voos',
         replace_existing=True
@@ -93,5 +93,5 @@ def iniciar_scheduler(app):
     )
 
     scheduler.start()
-    print('[Scheduler] Agendador iniciado. Verificações a cada hora + resumo diário às 8h.')
+    print('[Scheduler] Agendador iniciado. Verificações a cada 6 horas + resumo diário às 8h.')
     return scheduler
