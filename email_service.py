@@ -1,22 +1,46 @@
-import smtplib
 import os
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import requests
 from datetime import datetime
 
-EMAIL_REMETENTE = os.getenv('EMAIL_REMETENTE', '')
-EMAIL_SENHA = os.getenv('EMAIL_SENHA', '')
-EMAIL_VOAR = os.getenv('EMAIL_VOAR', '')  # Seu email da Voar para receber cópia
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+RESEND_FROM = os.getenv('RESEND_FROM', 'onboarding@resend.dev')
+EMAIL_VOAR = os.getenv('EMAIL_VOAR', '')
+
+
+def _send(to_list, subject, html):
+    """Envia email via Resend API."""
+    if not RESEND_API_KEY:
+        print('[Email] RESEND_API_KEY não configurada.')
+        return False
+
+    payload = {
+        'from': f'Voar Passagens Aéreas <{RESEND_FROM}>',
+        'to': to_list,
+        'subject': subject,
+        'html': html,
+    }
+
+    resp = requests.post(
+        'https://api.resend.com/emails',
+        headers={
+            'Authorization': f'Bearer {RESEND_API_KEY}',
+            'Content-Type': 'application/json',
+        },
+        json=payload,
+        timeout=15,
+    )
+
+    if resp.status_code in (200, 201):
+        return True
+    else:
+        print(f'[Email] Erro Resend {resp.status_code}: {resp.text}')
+        return False
 
 
 def enviar_alerta(demanda, oferta):
     """
     Envia email de alerta de preço para o cliente e para a Voar.
     """
-    if not EMAIL_REMETENTE or not EMAIL_SENHA:
-        print('[Email] Credenciais não configuradas.')
-        return False
-
     try:
         preco_fmt = f"R$ {oferta['preco']:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
         preco_alvo_fmt = f"R$ {demanda.preco_alvo:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
@@ -118,21 +142,12 @@ def enviar_alerta(demanda, oferta):
         if EMAIL_VOAR and EMAIL_VOAR != demanda.cliente_email:
             destinatarios.append(EMAIL_VOAR)
 
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = f'✈️ Passagem encontrada! {demanda.origem} → {demanda.destino} por {preco_fmt}'
-        msg['From'] = f'Voar Passagens Aéreas <{EMAIL_REMETENTE}>'
-        msg['To'] = demanda.cliente_email
-        if EMAIL_VOAR and EMAIL_VOAR != demanda.cliente_email:
-            msg['Cc'] = EMAIL_VOAR
+        subject = f'✈️ Passagem encontrada! {demanda.origem} → {demanda.destino} por {preco_fmt}'
+        enviado = _send(destinatarios, subject, html)
 
-        msg.attach(MIMEText(html, 'html'))
-
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(EMAIL_REMETENTE, EMAIL_SENHA)
-            smtp.sendmail(EMAIL_REMETENTE, destinatarios, msg.as_string())
-
-        print(f'[Email] Alerta enviado para {destinatarios}')
-        return True
+        if enviado:
+            print(f'[Email] Alerta enviado para {destinatarios}')
+        return enviado
 
     except Exception as e:
         print(f'[Email] Erro ao enviar: {e}')
@@ -143,7 +158,7 @@ def enviar_resumo_diario(demandas_ativas, alertas_hoje):
     """
     Envia um resumo diário para a Voar com o status de todas as demandas.
     """
-    if not EMAIL_VOAR or not EMAIL_REMETENTE or not EMAIL_SENHA:
+    if not EMAIL_VOAR:
         return False
 
     try:
@@ -196,18 +211,12 @@ def enviar_resumo_diario(demandas_ativas, alertas_hoje):
 </body>
 </html>"""
 
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = f'📊 Resumo Diário Voar — {datetime.now().strftime("%d/%m/%Y")}'
-        msg['From'] = f'Voar Sistema <{EMAIL_REMETENTE}>'
-        msg['To'] = EMAIL_VOAR
-        msg.attach(MIMEText(html, 'html'))
+        subject = f'📊 Resumo Diário Voar — {datetime.now().strftime("%d/%m/%Y")}'
+        enviado = _send([EMAIL_VOAR], subject, html)
 
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(EMAIL_REMETENTE, EMAIL_SENHA)
-            smtp.sendmail(EMAIL_REMETENTE, [EMAIL_VOAR], msg.as_string())
-
-        print(f'[Email] Resumo diário enviado para {EMAIL_VOAR}')
-        return True
+        if enviado:
+            print(f'[Email] Resumo diário enviado para {EMAIL_VOAR}')
+        return enviado
 
     except Exception as e:
         print(f'[Email] Erro no resumo diário: {e}')
