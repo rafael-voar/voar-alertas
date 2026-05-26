@@ -101,18 +101,15 @@ def _buscar_voos_data(origem, destino, data_str, demanda, tentativas=3):
     if demanda.data_volta:
         params['returnDate'] = demanda.data_volta
 
+    headers = {
+        'x-rapidapi-key': os.getenv('RAPIDAPI_KEY', ''),
+        'x-rapidapi-host': SKYSCANNER_HOST
+    }
+
     for tentativa in range(tentativas):
         try:
             print(f'[Skyscanner] Tentativa {tentativa+1}/{tentativas} - data {data_str}')
-            resp = requests.get(
-                url,
-                headers={
-                    'x-rapidapi-key': os.getenv('RAPIDAPI_KEY', ''),
-                    'x-rapidapi-host': SKYSCANNER_HOST
-                },
-                params=params,
-                timeout=45
-            )
+            resp = requests.get(url, headers=headers, params=params, timeout=45)
             print(f'[Skyscanner] Status: {resp.status_code}')
 
             data = resp.json()
@@ -123,6 +120,23 @@ def _buscar_voos_data(origem, destino, data_str, demanda, tentativas=3):
                 if tentativa < tentativas - 1:
                     time.sleep(5)
                 continue
+
+            # Se resultado incompleto, faz segunda chamada com sessionId
+            context_status = data.get('data', {}).get('context', {}).get('status', '')
+            session_id = data.get('data', {}).get('context', {}).get('sessionId', '')
+            if context_status == 'incomplete' and session_id:
+                print(f'[Skyscanner] Resultado incompleto, buscando mais com sessionId...')
+                time.sleep(3)
+                params2 = dict(params)
+                params2['sessionId'] = session_id
+                resp2 = requests.get(url, headers=headers, params=params2, timeout=45)
+                if resp2.status_code == 200:
+                    data2 = resp2.json()
+                    if data2.get('status'):
+                        itins2 = data2.get('data', {}).get('itineraries', [])
+                        if len(itins2) > len(data.get('data', {}).get('itineraries', [])):
+                            print(f'[Skyscanner] Segunda chamada retornou {len(itins2)} itinerários')
+                            data = data2
 
             itineraries = data.get('data', {}).get('itineraries', [])
             print(f'[Skyscanner] Itinerários encontrados para {data_str}: {len(itineraries)}')
