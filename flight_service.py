@@ -155,10 +155,17 @@ def _buscar_voos_data(origem, destino, data_str, demanda, tentativas=3):
                         if nome and nome not in cias:
                             cias.append(nome)
 
+                # Monta link correto: ida e volta ou só ida
+                if demanda.data_volta:
+                    volta_fmt = demanda.data_volta.replace("-", "")
+                    link = f'https://www.skyscanner.com.br/transporte/passagens-aereas/{demanda.origem.lower()}/{demanda.destino.lower()}/{data_str.replace("-", "")}/{volta_fmt}/'
+                else:
+                    link = f'https://www.skyscanner.com.br/transporte/passagens-aereas/{demanda.origem.lower()}/{demanda.destino.lower()}/{data_str.replace("-", "")}/'
+
                 resultados.append({
                     'preco': float(preco_raw),
                     'companhia': ', '.join(cias) if cias else 'N/D',
-                    'link': f'https://www.skyscanner.com.br/transporte/passagens-aereas/{demanda.origem.lower()}/{demanda.destino.lower()}/{data_str.replace("-", "")}/',
+                    'link': link,
                     'fonte': 'skyscanner',
                     'data_voo': data_str
                 })
