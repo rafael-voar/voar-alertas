@@ -128,7 +128,7 @@ def _buscar_voos_data(origem, destino, data_str, demanda, tentativas=3):
             print(f'[Skyscanner] Itinerários encontrados para {data_str}: {len(itineraries)}')
 
             resultados = []
-            for item in itineraries[:10]:
+            for item in itineraries[:25]:
                 preco_raw = item.get('price', {}).get('raw', None)
                 if preco_raw is None:
                     continue
